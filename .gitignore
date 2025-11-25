@@ -1,0 +1,13 @@
+# Dependências do Node (Backend e Frontend)
+node_modules
+
+# Arquivos de Compilação do Relay/GraphQL
+data/schema.graphql      # O schema baixado do servidor
+frontend/client/src/__generated__ # Arquivos compilados do Relay
+frontend/client/build    # Pasta de build do React
+frontend/client/node_modules
+
+# Logs e Cache
+.DS_Store
+npm-debug.log*
+.env.local
