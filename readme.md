@@ -1,46 +1,93 @@
-CRUD Full-Stack com GraphQL e Relay
-1. 🚀 Introdução
-Este projeto consiste na implementação de uma aplicação CRUD (Create, Read, Update, Delete) para gerenciar Usuários e Transações. O objetivo principal foi demonstrar a proficiência na construção e consumo de uma API GraphQL utilizando a filosofia de Relay no frontend React.
+# Relay Flow - Gerenciador de Usuários e Transações
 
-2. 💻 Tecnologias Utilizadas
-Camada	Tecnologia	Propósito
-Backend	Node.js, Express, express-graphql, cors	Servidor da API e definição do Schema GraphQL.
-Frontend	React, Relay (react-relay, relay-runtime)	Interface do usuário e framework avançado de busca de dados.
-Build/Config	craco, babel-plugin-relay, relay-compiler	Compilação e tradução das queries Relay (Babel Transform).
-Dados	Arrays JavaScript (Mock Data)	Simulação do banco de dados.
+> **Status do Projeto:** 🚀 Em Desenvolvimento
 
-Exportar para as Planilhas
+Este projeto consiste em uma aplicação Full Stack focada em performance e integridade de dados, implementando uma arquitetura robusta que conecta um backend **GraphQL** a um frontend **React** através do **Relay**.
 
-3. 🧠 Decisões Arquiteturais e Fundamentais (Passo 9.1)
-A escolha deste stack foi estratégica para o desenvolvimento de aplicações modernas que exigem alta performance e manutenção facilitada, alinhando-se aos padrões de grandes empresas.
+O objetivo central é demonstrar a aplicação do padrão de *Data Colocation*, onde cada componente declara explicitamente suas dependências de dados, otimizando o fluxo de informações e eliminando problemas comuns como *over-fetching*.
 
-A. Escolha do GraphQL vs. REST
-Motivo Principal: Evitar o Over-fetching. Diferente das APIs REST que retornam estruturas fixas, o GraphQL permite ao frontend solicitar exatamente os campos de dados necessários (ex: apenas o name e email), otimizando o consumo de banda e o tempo de carregamento no cliente.
+---
 
-B. Uso Estratégico do Relay no Frontend
-Relay como Framework de Dados: Eu escolhi o Relay por ser um cliente GraphQL "opinioso" que impõe boas práticas. O Relay simplifica drasticamente a lógica de tratamento de estado no cliente.
+## 🛠 Tecnologias Utilizadas
 
-Colocação de Dados (Fragments): A filosofia de definir os data requirements (Fragments) ao lado do componente React que os usa garante que o código seja modular e que o componente só consiga acessar os dados que explicitamente solicitou.
+A stack tecnológica foi selecionada para garantir escalabilidade, tipagem forte e eficiência no tráfego de dados.
 
-Performance: O Relay gerencia automaticamente o caching, o estado de loading (via Suspense) e a normalização dos dados, eliminando a necessidade de escrever código manual complexo (useEffect, useState) para esses fins.
+### Backend
+*   **Runtime:** Node.js
+*   **Framework:** Express
+*   **API:** `express-graphql`
+*   **Linguagem de Consulta:** GraphQL
 
-4. 🚧 Trade-offs e Desafios (Passo 9.2)
-Todo projeto envolve concessões. Abaixo estão os principais trade-offs e desafios superados:
+### Frontend
+*   **Biblioteca:** React
+*   **Gerenciamento de Dados:** Relay (`react-relay`, `relay-runtime`)
+*   **Compilador:** `relay-compiler`
+*   **Build Tool:** Craco (Custom React App Configuration) para injeção avançada de plugins Babel.
 
-Ponto	Descrição	O Trade-off
-Persistência	Uso de Arrays Mockados (mockUsers, mockTransactions) no server.js.	Ganho: Foco total na lógica do GraphQL/Relay e na entrega do desafio em menos tempo. Perda: Os dados não persistem após o servidor ser reiniciado.
-Setup do Build	Integração do Relay em um projeto create-react-app (react-scripts).	Desafio: O CRA esconde a configuração do Babel, o que é essencial para o Relay. Solução: Foi necessário utilizar a ferramenta Craco para "arrombar" a configuração e injetar o babel-plugin-relay. Isso adicionou complexidade de build, mas foi necessário para manter a base de código React/Relay.
-Mutations	Implementação de lógica de atualização parcial no Resolver (if (args.name) { ... })	Detalhe: Em um sistema de produção, usaríamos Input Types no GraphQL para organizar melhor os campos de entrada, mas a abordagem atual é funcional e mais rápida para o mock.
+### Dados
+*   **Persistência:** Mock Data (Estruturas em memória para simulação de banco de dados e foco na lógica de integração).
 
-Exportar para as Planilhas
+---
 
-5. 🛠️ Próximos Passos (A Serem Implementados)
-O projeto está 100% funcional (CRUD completo). Para levá-lo à produção, eu faria o seguinte:
+## 🚀 Instalação e Execução
 
-Substituir os arrays de mock por um banco de dados real (ex: PostgreSQL).
+O projeto opera com uma arquitetura cliente-servidor separada. Siga os passos abaixo para inicializar o ambiente.
 
-Adicionar testes unitários para os Resolvers do CRUD (Passo 10.2).
+### Pré-requisitos
+*   Node.js (v14 ou superior)
+*   npm ou yarn
 
-Refatorar o server.js dividindo Schema e Resolvers em arquivos separados (Passo 10.1).
+### 1. Inicialização do Backend (API)
 
-Implementar a lógica de Update e Delete no frontend React, usando o hook useMutation (que já está configurado).
+No diretório raiz do projeto:
+
+```bash
+# Instalar dependências
+npm install
+
+# Iniciar o servidor
+node server.js
+```
+> O servidor estará ativo em: `http://localhost:4000/graphql`
+
+### 2. Inicialização do Frontend
+
+Em um novo terminal, navegue até o diretório do cliente:
+
+```bash
+cd frontend/client
+
+# Instalar dependências
+npm install
+
+# Atualizar schema e compilar artefatos do Relay
+# Este passo é crucial para gerar os tipos e fragmentos do Relay
+npm run update-schema
+npm run relay
+
+# Iniciar a aplicação
+npm start
+```
+> A aplicação estará acessível em: `http://localhost:3000`
+
+---
+
+## 🧠 Decisões Arquiteturais
+
+### Por que GraphQL e Relay?
+A escolha desta stack visa mitigar o *Over-fetching* e *Under-fetching* comuns em APIs REST. O **Relay** atua como um framework opinativo que impõe boas práticas, gerenciando automaticamente o cache, a consistência dos dados e os estados de carregamento (loading states), permitindo que o desenvolvimento foque na lógica de UI e não na infraestrutura de busca de dados.
+
+### Configuração de Build (CRA + Relay)
+O `create-react-app` nativo possui limitações quanto à configuração de plugins do Babel necessários para o Relay. Para contornar isso sem a necessidade de "ejetar" (`eject`) a aplicação, utilizou-se o **Craco**. Ele permite a injeção do `babel-plugin-relay` no pipeline de build de forma transparente e manutenível.
+
+### Persistência de Dados
+Para manter o foco na complexidade da integração Frontend-Backend e nas nuances do Relay, optou-se pelo uso de dados em memória (`mockUsers`, `mockTransactions`). Embora os dados sejam redefinidos ao reiniciar o servidor, esta abordagem permite a validação completa do fluxo CRUD (Create, Read, Update, Delete) sem a sobrecarga de configuração de um banco de dados externo.
+
+---
+
+## ✅ Funcionalidades
+
+- [x] **Listagem (Query):** Visualização otimizada de Usuários e suas respectivas Transações.
+- [x] **Criação (Mutation):** Cadastro de novos Usuários.
+- [x] **Atualização (Mutation):** Edição de dados de Usuários existentes.
+- [x] **Remoção (Mutation):** Exclusão de Usuários e Transações.
