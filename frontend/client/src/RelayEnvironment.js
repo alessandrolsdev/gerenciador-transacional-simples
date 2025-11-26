@@ -7,52 +7,61 @@ import {
 } from 'relay-runtime';
 
 /**
- * A "receita" do Fetch (Passo 6.2.1)
- *
- * Esta é a função que diz ao Relay COMO falar com sua API.
- * É o "telefone" que o Relay vai usar toda vez.
+ * Define a função de fetch usada pelo Relay para se comunicar com a API GraphQL.
+ * 
+ * @param {Object} params - Os parâmetros da query, incluindo o texto da query.
+ * @param {Object} variables - As variáveis a serem passadas para a query.
+ * @returns {Promise<Object>} A resposta JSON do servidor.
+ * @throws {Error} Se houver erro de rede ou resposta inválida.
  */
-const fetchRelay: FetchFunction = async (params, variables) => {
-  
-  // 1. Onde ligar: O seu servidor que está rodando.
+const fetchRelay = async (params, variables) => {
   const API_URL = 'http://localhost:4000/graphql';
 
-  // 2. O que dizer: Usar o 'fetch()' que já discutimos.
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    // 3. O Pedido:
-    //    params.text é o texto da sua Query/Mutation
-    //    variables são os dados (ex: { id: "1" })
-    body: JSON.stringify({
-      query: params.text,
-      variables,
-    }),
-  });
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: params.text,
+        variables,
+      }),
+    });
 
-  // 4. A Resposta: Desempacotar a comida (o JSON)
-  return response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const json = await response.json();
+    
+    // Verificar se há erros no GraphQL
+    if (json.errors) {
+      throw new Error(json.errors[0].message || 'GraphQL error');
+    }
+    
+    return json;
+  } catch (error) {
+    console.error('Network error:', error);
+    throw error;
+  }
 };
 
 /**
- * O "Motor" do Relay (Passo 6.2)
- *
- * Aqui nós juntamos as peças.
+ * Cria e configura o Relay Environment.
+ * O environment agrupa a camada de rede e o store (cache).
+ * 
+ * @returns {Environment} Uma instância configurada do Relay Environment.
  */
 function createRelayEnvironment() {
   return new Environment({
-    // 1. A Rede: "Relay, use esta 'receita' de fetch"
     network: Network.create(fetchRelay),
-    
-    // 2. O Cache: "Relay, guarde os dados que você buscar aqui"
     store: new Store(new RecordSource()),
   });
 }
 
-// 3. Exporta o motor pronto para ser usado no app
+/**
+ * A instância singleton  do Relay Environment para ser usada em toda a aplicação.
+ * @type {Environment}
+ */
 export const RelayEnvironment = createRelayEnvironment();
-
-// export default não é padrão aqui, nomeado é melhor
-// export default createRelayEnvironment();

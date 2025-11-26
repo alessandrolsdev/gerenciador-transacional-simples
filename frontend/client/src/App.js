@@ -2,11 +2,13 @@ import React, { useState, Suspense } from 'react';
 import { graphql, useLazyLoadQuery, useMutation } from 'react-relay';
 import './App.css';
 
-// Importando nossos novos componentes
 import TransactionListItem from './components/TransactionListItem';
 import EditUserForm from './components/EditUserForm';
 
-// Queries e Mutations de Criação continuam aqui (ou poderiam ir para outro arquivo)
+/**
+ * Query GraphQL para buscar dados iniciais da aplicação.
+ * Recupera o usuário atual e suas transações.
+ */
 const AppQuery = graphql`
   query AppQuery {
     user(id: "1") { id name email }
@@ -14,172 +16,276 @@ const AppQuery = graphql`
   }
 `;
 
+/**
+ * Mutation GraphQL para criar um novo usuário.
+ */
 const CreateUserMutation = graphql`
   mutation AppCreateUserMutation($name: String!, $email: String!) {
     createUser(name: $name, email: $email) { id name email }
   }
 `;
+
+/**
+ * Mutation GraphQL para criar uma nova transação.
+ */
 const CreateTransactionMutation = graphql`
   mutation AppCreateTransactionMutation($amount: Float!, $userId: ID!, $description: String!) {
     createTransaction(amount: $amount, userId: $userId, description: $description) { id amount description }
   }
 `;
 
+/**
+ * Componente de conteúdo principal da aplicação.
+ * Gerencia o estado local para formulários e manipula mutations GraphQL.
+ */
 function AppContent() {
   const data = useLazyLoadQuery(AppQuery, {});
-  const [notification, setNotification] = useState(null); 
-  
-  // Estados de Criação
+  const [notification, setNotification] = useState(null);
+
+  // Estado para formulários de criação
   const [createName, setCreateName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
   const [newTxAmount, setNewTxAmount] = useState('');
   const [newTxDesc, setNewTxDesc] = useState('');
-  
-  // Estado do Modal de Edição
+
+  // Estado para o modal de Edição do Usuário
   const [isEditingUser, setIsEditingUser] = useState(false);
 
-  // Mutations de Criação
+  // Hooks de mutation
   const [commitCreateUser, isCreatingUser] = useMutation(CreateUserMutation);
   const [commitCreateTx, isCreatingTx] = useMutation(CreateTransactionMutation);
 
-  // Função UX Global
+  /**
+   * Exibe uma notificação temporária para o usuário.
+   * @param {string} message - A mensagem a ser exibida.
+   * @param {string} [type='success'] - O tipo de notificação ('success' ou 'error').
+   */
   const showNotification = (message, type = 'success') => {
-      setNotification({ message, type });
-      setTimeout(() => setNotification(null), 3000); 
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   };
 
-  // Handlers de Criação
+  /**
+   * Manipula o envio do formulário de Criar Usuário.
+   * @param {Event} e - O evento de envio do formulário.
+   */
   const handleCreateUser = (e) => {
     e.preventDefault();
+
+    // Validação básica de nome
+    if (createName.trim().length < 2) {
+      showNotification("❌ Nome muito curto!", 'error');
+      return;
+    }
+
     commitCreateUser({
       variables: { name: createName, email: createEmail },
-      onCompleted: () => { 
+      onCompleted: () => {
         showNotification("✅ Usuário criado!");
         setCreateName(""); setCreateEmail("");
       },
-      onError: () => showNotification("❌ Erro ao criar!", 'error'),
+      onError: (error) => {
+        const message = error.message || "Erro ao criar!";
+        showNotification(`❌ ${message}`, 'error');
+      },
     });
   };
 
+  /**
+   * Manipula o envio do formulário de Criar Transação.
+   * Atualiza o store local do Relay para refletir a nova transação imediatamente.
+   * @param {Event} e - O evento de envio do formulário.
+   */
   const handleCreateTransaction = (e) => {
     e.preventDefault();
     if (isCreatingTx) return;
-    
-    commitCreateTx({
-        variables: { amount: parseFloat(newTxAmount), userId: data.user.id, description: newTxDesc },
-        
-        // --- O SEGREDO DA ATUALIZAÇÃO AUTOMÁTICA ---
-        updater: (store) => {
-            // 1. Pega o ID do usuário atual (dono da lista)
-            const userId = data.user.id;
-            // 2. Acessa o registro do usuário na "memória" do Relay
-            const userRecord = store.get(userId);
-            // 3. Pega a nova transação que acabou de ser criada (do payload da resposta)
-            const payload = store.getRootField('createTransaction');
-            
-            // 4. Se tudo existir, adiciona na lista
-            if (userRecord && payload) {
-                // Pega a lista atual de transações do cache (root query)
-                // Nota: Como sua query 'transactions' está na raiz e recebe argumento, pegamos da raiz
-                const root = store.getRoot();
-                const currentTransactions = root.getLinkedRecords('transactions', { userId });
-                
-                // Cria uma nova lista com a nova transação no final
-                const newTransactions = [...(currentTransactions || []), payload];
-                
-                // Atualiza a lista na memória do Relay
-                root.setLinkedRecords(newTransactions, 'transactions', { userId });
-            }
-        },
-        // ---------------------------------------------
 
-        onCompleted: () => { 
-            showNotification("✅ Transação salva!"); 
-            setNewTxAmount(''); setNewTxDesc(''); 
-        },
-        onError: () => showNotification("❌ Erro ao salvar transação!", 'error'),
+    // Validação do valor
+    const amount = parseFloat(newTxAmount);
+    if (isNaN(amount)) {
+      showNotification("❌ Valor inválido!", 'error');
+      return;
+    }
+
+    if (amount < 0) {
+      showNotification("❌ Valor não pode ser negativo!", 'error');
+      return;
+    }
+
+    // Validação da descrição
+    if (newTxDesc.trim().length < 3) {
+      showNotification("❌ Descrição muito curta!", 'error');
+      return;
+    }
+
+    commitCreateTx({
+      variables: { amount, userId: data.user.id, description: newTxDesc },
+
+      /**
+       * Função updater para atualizar manualmente o store do Relay.
+       * Anexa a nova transação à lista existente no cache.
+       * @param {RecordSourceSelectorProxy} store - O proxy do store do Relay.
+       */
+      updater: (store) => {
+        const userId = data.user.id;
+        const userRecord = store.get(userId);
+        const payload = store.getRootField('createTransaction');
+
+        if (userRecord && payload) {
+          const root = store.getRoot();
+          const currentTransactions = root.getLinkedRecords('transactions', { userId });
+          const newTransactions = [...(currentTransactions || []), payload];
+          root.setLinkedRecords(newTransactions, 'transactions', { userId });
+        }
+      },
+
+      onCompleted: () => {
+        showNotification("✅ Transação salva!");
+        setNewTxAmount(''); setNewTxDesc('');
+      },
+      onError: (error) => {
+        const message = error.message || "Erro ao salvar transação!";
+        showNotification(`❌ ${message}`, 'error');
+      },
     });
   };
+
+  // Verificação de segurança: garantir que o usuário existe
+  if (!data || !data.user) {
+    return (
+      <div className="app-layout">
+        <h1>Erro: Usuário não encontrado</h1>
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
-      {/* Notificação */}
+      {/* Toast de Notificação */}
       {notification && (
         <div className={`notification-toast ${notification.type}`}>{notification.message}</div>
       )}
 
-      {/* Header */}
+      {/* Seção de Cabeçalho */}
       <header className="main-header">
-        <h1>Welcome, {data.user.name}!</h1>
-        <button className="edit-profile-btn" onClick={() => setIsEditingUser(true)}>
-            Editar Perfil
-        </button>
+
+        {/* LADO ESQUERDO: LOGO DO APP */}
+        <div className="brand-logo">
+          <span className="logo-icon">💸</span>
+          <h1>Relay Flow</h1>
+        </div>
+
+        {/* LADO DIREITO: PERFIL DO USUÁRIO */}
+        <div className="user-profile-section">
+          <span className="welcome-text">Olá, <strong>{data.user.name}</strong></span>
+          <button className="edit-profile-btn" onClick={() => setIsEditingUser(true)} title="Editar Perfil">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"> <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" /> </svg>
+          </button>
+        </div>
+
       </header>
 
-      {/* Modal (Componente Separado!) */}
+      {/* Modal de Edição de Usuário */}
       {isEditingUser && (
-        <EditUserForm 
-          user={data.user} 
-          onClose={() => setIsEditingUser(false)} 
-          showNotification={showNotification} 
+        <EditUserForm
+          user={data.user}
+          onClose={() => setIsEditingUser(false)}
+          showNotification={showNotification}
         />
       )}
 
       <main className="main-content">
-        {/* Lista (Componentes Separados!) */}
+        {/* Lista de Transações */}
         <section>
-            <h2>Your Transactions</h2>
-            <div className="transactions-container">
-                {data.transactions.map((tx) => (
-                  <TransactionListItem 
-                    key={tx.id} 
-                    tx={tx} 
-                    showNotification={showNotification} 
-                  />
-                ))}
-            </div>
+          <h2>Your Transactions</h2>
+          <div className="transactions-container">
+            {data.transactions.map((tx) => (
+              <TransactionListItem
+                key={tx.id}
+                tx={tx}
+                showNotification={showNotification}
+              />
+            ))}
+          </div>
         </section>
 
         {/* Formulários de Criação */}
         <section className="forms-container-row">
-            <div className="form-card">
-                <h3>+ Criar Transação</h3>
-                <form onSubmit={handleCreateTransaction}>
-                    <div className="input-group-icon">
-                        <span className="input-icon">💲</span>
-                        <input type="text" placeholder="Descrição" value={newTxDesc} onChange={(e) => setNewTxDesc(e.target.value)} disabled={isCreatingTx} required />
-                    </div>
-                    <div className="input-group-icon">
-                        <span className="input-icon">💰</span>
-                        <input type="number" step="0.01" placeholder="Valor" value={newTxAmount} onChange={(e) => setNewTxAmount(e.target.value)} disabled={isCreatingTx} required />
-                    </div>
-                    <button type="submit" className="submit-btn" disabled={isCreatingTx}>Salvar</button>
-                </form>
-            </div>
+          <div className="form-card">
+            <h3>+ Criar Transação</h3>
+            <form onSubmit={handleCreateTransaction}>
+              <div className="input-group-icon">
+                <span className="input-icon">💲</span>
+                <input
+                  type="text"
+                  placeholder="Descrição"
+                  value={newTxDesc}
+                  onChange={(e) => setNewTxDesc(e.target.value)}
+                  disabled={isCreatingTx}
+                  maxLength={100}
+                  required
+                />
+              </div>
+              <div className="input-group-icon">
+                <span className="input-icon">💰</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Valor"
+                  value={newTxAmount}
+                  onChange={(e) => setNewTxAmount(e.target.value)}
+                  disabled={isCreatingTx}
+                  required
+                />
+              </div>
+              <button type="submit" className="submit-btn" disabled={isCreatingTx}>Salvar</button>
+            </form>
+          </div>
 
-            <div className="form-card">
-                <h3>+ Criar Usuário (Teste)</h3>
-                <form onSubmit={handleCreateUser}>
-                    <div className="input-group-icon">
-                        <span className="input-icon">👤</span>
-                        <input type="text" placeholder="Nome" value={createName} onChange={(e) => setCreateName(e.target.value)} disabled={isCreatingUser} required />
-                    </div>
-                    <div className="input-group-icon">
-                        <span className="input-icon">✉️</span>
-                        <input type="email" placeholder="Email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} disabled={isCreatingUser} required />
-                    </div>
-                    <button type="submit" className="submit-btn" disabled={isCreatingUser}>Criar</button>
-                </form>
-            </div>
+          <div className="form-card">
+            <h3>+ Criar Usuário (Teste)</h3>
+            <form onSubmit={handleCreateUser}>
+              <div className="input-group-icon">
+                <span className="input-icon">👤</span>
+                <input
+                  type="text"
+                  placeholder="Nome"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  disabled={isCreatingUser}
+                  maxLength={100}
+                  required
+                />
+              </div>
+              <div className="input-group-icon">
+                <span className="input-icon">✉️</span>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  disabled={isCreatingUser}
+                  maxLength={100}
+                  required
+                />
+              </div>
+              <button type="submit" className="submit-btn" disabled={isCreatingUser}>Criar</button>
+            </form>
+          </div>
         </section>
       </main>
     </div>
   );
 }
 
+/**
+ * Componente de nível superior que envolve o conteúdo em um limite de Suspense.
+ */
 export default function App() {
-    return (
-        <Suspense fallback={<div className="app-layout"><h1>Loading...</h1></div>}>
-            <AppContent />
-        </Suspense>
-    );
+  return (
+    <Suspense fallback={<div className="app-layout"><h1>Loading...</h1></div>}>
+      <AppContent />
+    </Suspense>
+  );
 }

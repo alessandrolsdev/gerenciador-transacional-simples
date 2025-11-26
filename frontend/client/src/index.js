@@ -4,25 +4,29 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// --- IMPORTAÇÕES DO RELAY ---
 import { RelayEnvironment } from './RelayEnvironment';
 import { RelayEnvironmentProvider } from 'react-relay';
 
+/**
+ * Inicializa a raiz da aplicação React.
+ */
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
+/**
+ * Renderiza a aplicação envolvida no RelayEnvironmentProvider e Suspense.
+ * 
+ * - RelayEnvironmentProvider: Conecta o ambiente Relay à árvore de componentes React.
+ * - Suspense: Gerencia o estado de carregamento enquanto os dados estão sendo buscados.
+ * - React.StrictMode: Destaca problemas potenciais em uma aplicação.
+ */
 root.render(
-  // 1. O Provider conecta o Relay ao React
   <RelayEnvironmentProvider environment={RelayEnvironment}>
-    
-    {/* 2. O Suspense segura a renderização enquanto os dados iniciais carregam */}
     <Suspense fallback={<div className="loading-fallback"><h1>Carregando dados...</h1></div>}>
-      
       <React.StrictMode>
         <App />
       </React.StrictMode>
-      
     </Suspense>
-
   </RelayEnvironmentProvider>
 );
+
 reportWebVitals();
