@@ -61,14 +61,22 @@ O projeto segue padrões seniores de separação de responsabilidades e clean co
 - Adição rápida de Receitas e Despesas com categorização.
 - Design responsivo e animado.
 
-## 🚀 Deploy no Vercel (Modo Mock)
+## 🚀 Deploy no Vercel (Full Stack)
 
-Para fazer deploy no Vercel sem backend:
+O projeto está configurado para deploy "monorepo" no Vercel (Frontend + Backend juntos).
 
-1.  Configure a variável de ambiente no Vercel:
-    *   **REACT_APP_USE_MOCK**: `true`
+1.  **Vercel Project**: Importe o repositório raiz.
+2.  **Build Settings**: Deixe as configurações padrão (o `vercel.json` cuidará de tudo).
+    *   Arquitetura: O backend roda como Serverless Function em `/graphql`.
+    *   Frontend: Arquivos estáticos servidos na raiz `/`.
+3.  **Environment Variables**:
+    *   **REACT_APP_USE_MOCK**: Defina como `false` (ou remova) para usar o backend real.
 
-Isso fará com que o frontend execute todo o GraphQL localmente no navegador, simulando o backend com dados em memória.
+## 📝 Comandos Úteis
+
+- `npm start` (Raiz): Inicia o Backend.
+- `npm start` (Frontend): Inicia o Frontend (com proxy para o backend).
+- `npm run start:mock`: Roda o frontend isolado com dados mockados.
 
 ## 📝 Comandos Úteis
 

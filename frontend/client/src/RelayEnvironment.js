@@ -37,8 +37,9 @@ const executeLocalQuery = async (params, variables) => {
  * Alterna entre execução local e remota baseada na variável de ambiente.
  */
 const fetchRelay = async (params, variables) => {
-  // FORÇAR MOCK MODE: Para garantir que funcione imediatamente sem depender de .env
-  const useMock = true; // process.env.REACT_APP_USE_MOCK === 'true';
+  // Configuração "Senior": Usa variável de ambiente ou detecta ambiente.
+  // Se REACT_APP_USE_MOCK estiver 'true', usa mock. Caso contrário, usa API real.
+  const useMock = process.env.REACT_APP_USE_MOCK === 'true';
 
   console.log('[RelayNetwork] Mode:', useMock ? 'MOCK (Local)' : 'NETWORK (API)');
 
@@ -48,7 +49,9 @@ const fetchRelay = async (params, variables) => {
     return executeLocalQuery(params, variables);
   }
 
-  const API_URL = 'http://localhost:4000/graphql';
+  // Em produção (Vercel), a API está no mesmo domínio em /graphql
+  // Em desenvolvimento, o package.json proxy redireciona para localhost:4000
+  const API_URL = '/graphql';
 
   try {
     const response = await fetch(API_URL, {

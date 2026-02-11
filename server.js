@@ -36,9 +36,13 @@ app.use('/graphql', graphqlHTTP({
 }));
 
 /**
- * Inicia o servidor na porta 4000.
- * Registra uma mensagem no console quando o servidor estiver pronto.
+ * Inicia o servidor na porta 4000 apenas se não estiver rodando no Vercel.
+ * No Vercel, exportamos o app para ser tratado como Serverless Function.
  */
-app.listen(4000, () => {
-  console.log('Backend Server (API) running at http://localhost:4000/graphql');
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(4000, () => {
+    console.log('Backend Server (API) running at http://localhost:4000/graphql');
+  });
+}
+
+module.exports = app;
