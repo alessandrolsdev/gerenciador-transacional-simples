@@ -74,14 +74,9 @@ O projeto está configurado para deploy "monorepo" no Vercel (Frontend + Backend
 
 ## 📝 Comandos Úteis
 
-- `npm start` (Raiz): Inicia o Backend.
-- `npm start` (Frontend): Inicia o Frontend (com proxy para o backend).
-- `npm run start:mock`: Roda o frontend isolado com dados mockados.
-
-## 📝 Comandos Úteis
-
-- `npm run start:mock`: Roda o projeto localmente usando o servidor mock (sem backend).
-- `npm run relay`: Regenera os artefatos do Relay após mudanças no schema ou nas queries.
+- `npm start` (Raiz): Inicia o Backend desenvolviment (porta 4000).
+- `npm start` (Frontend): Inicia o Frontend (porta 3000, com proxy).
+- `npm run relay`: Regenera os artefatos do Relay após mudanças no schema.
 
 ## ⚠️ Solução de Problemas no Vercel
 
