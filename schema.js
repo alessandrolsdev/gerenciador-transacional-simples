@@ -1,14 +1,14 @@
 /**
  * Definição do schema GraphQL.
  * Define os tipos, queries e mutations disponíveis na API.
- * 
- * @type {string}
+ * * @type {string}
  * @description
  * O schema inclui:
  * - Tipos: User, Transaction
  * - Queries: user, transactions
  * - Mutations: createUser, createTransaction, updateUser, updateTransaction, deleteUser, deleteTransaction
  */
+const schemaString = `
 type User {
   id: ID!
   name: String!
@@ -17,7 +17,7 @@ type User {
 
 enum TransactionType {
   INCOME
-    EXPENSE
+  EXPENSE
 }
 
 type Transaction {
