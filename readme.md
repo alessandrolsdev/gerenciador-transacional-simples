@@ -74,3 +74,13 @@ Isso fará com que o frontend execute todo o GraphQL localmente no navegador, si
 
 - `npm run start:mock`: Roda o projeto localmente usando o servidor mock (sem backend).
 - `npm run relay`: Regenera os artefatos do Relay após mudanças no schema ou nas queries.
+
+## ⚠️ Solução de Problemas no Vercel
+
+Se o deploy falhar com erro `command not found: react-scripts`, é porque o Vercel tentou usar o comando padrão do Create React App em vez do `craco`.
+
+**Correção:**
+1.  Vá em **Settings** > **Build & Development**.
+2.  No campo **Build Command**, ative **OVERRIDE**.
+3.  Digite: `npm run build`
+4.  Salve e redeploy.
