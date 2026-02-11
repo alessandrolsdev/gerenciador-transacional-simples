@@ -3,18 +3,51 @@ import {
   Network,
   RecordSource,
   Store,
-  FetchFunction,
 } from 'relay-runtime';
+import { graphql, buildSchema } from 'graphql';
+import { schemaString } from './mock-server/schema';
+import { rootResolver } from './mock-server/resolvers';
+
+// Compila o schema para execução local
+const localSchema = buildSchema(schemaString);
 
 /**
- * Define a função de fetch usada pelo Relay para se comunicar com a API GraphQL.
- * 
- * @param {Object} params - Os parâmetros da query, incluindo o texto da query.
- * @param {Object} variables - As variáveis a serem passadas para a query.
- * @returns {Promise<Object>} A resposta JSON do servidor.
- * @throws {Error} Se houver erro de rede ou resposta inválida.
+ * Executa a query localmente no navegador usando o pacote 'graphql'.
+ */
+const executeLocalQuery = async (params, variables) => {
+  console.log('[Mock Server] Executing query:', params.name);
+
+  try {
+    const result = await graphql({
+      schema: localSchema,
+      source: params.text,
+      rootValue: rootResolver,
+      variableValues: variables,
+    });
+
+    return result;
+  } catch (error) {
+    console.error('[Mock Server] Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Define a função de fetch usada pelo Relay.
+ * Alterna entre execução local e remota baseada na variável de ambiente.
  */
 const fetchRelay = async (params, variables) => {
+  // FORÇAR MOCK MODE: Para garantir que funcione imediatamente sem depender de .env
+  const useMock = true; // process.env.REACT_APP_USE_MOCK === 'true';
+
+  console.log('[RelayNetwork] Mode:', useMock ? 'MOCK (Local)' : 'NETWORK (API)');
+
+  if (useMock) {
+    // Simula um pequeno delay de rede para realismo
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return executeLocalQuery(params, variables);
+  }
+
   const API_URL = 'http://localhost:4000/graphql';
 
   try {
@@ -34,12 +67,11 @@ const fetchRelay = async (params, variables) => {
     }
 
     const json = await response.json();
-    
-    // Verificar se há erros no GraphQL
+
     if (json.errors) {
       throw new Error(json.errors[0].message || 'GraphQL error');
     }
-    
+
     return json;
   } catch (error) {
     console.error('Network error:', error);
@@ -47,12 +79,6 @@ const fetchRelay = async (params, variables) => {
   }
 };
 
-/**
- * Cria e configura o Relay Environment.
- * O environment agrupa a camada de rede e o store (cache).
- * 
- * @returns {Environment} Uma instância configurada do Relay Environment.
- */
 function createRelayEnvironment() {
   return new Environment({
     network: Network.create(fetchRelay),
@@ -60,8 +86,4 @@ function createRelayEnvironment() {
   });
 }
 
-/**
- * A instância singleton  do Relay Environment para ser usada em toda a aplicação.
- * @type {Environment}
- */
 export const RelayEnvironment = createRelayEnvironment();

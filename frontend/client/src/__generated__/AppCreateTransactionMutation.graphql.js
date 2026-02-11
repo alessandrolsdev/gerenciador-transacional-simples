@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<33296d96f8e29eb4e0fe638c79667867>>
+ * @generated SignedSource<<d5e2251c37c85d5385e38691d27f4013>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -17,14 +17,24 @@ var v0 = {
 v1 = {
   "defaultValue": null,
   "kind": "LocalArgument",
-  "name": "description"
+  "name": "category"
 },
 v2 = {
   "defaultValue": null,
   "kind": "LocalArgument",
+  "name": "description"
+},
+v3 = {
+  "defaultValue": null,
+  "kind": "LocalArgument",
+  "name": "type"
+},
+v4 = {
+  "defaultValue": null,
+  "kind": "LocalArgument",
   "name": "userId"
 },
-v3 = [
+v5 = [
   {
     "alias": null,
     "args": [
@@ -35,8 +45,18 @@ v3 = [
       },
       {
         "kind": "Variable",
+        "name": "category",
+        "variableName": "category"
+      },
+      {
+        "kind": "Variable",
         "name": "description",
         "variableName": "description"
+      },
+      {
+        "kind": "Variable",
+        "name": "type",
+        "variableName": "type"
       },
       {
         "kind": "Variable",
@@ -69,6 +89,27 @@ v3 = [
         "kind": "ScalarField",
         "name": "description",
         "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "type",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "category",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "createdAt",
+        "storageKey": null
       }
     ],
     "storageKey": null
@@ -79,12 +120,14 @@ return {
     "argumentDefinitions": [
       (v0/*: any*/),
       (v1/*: any*/),
-      (v2/*: any*/)
+      (v2/*: any*/),
+      (v3/*: any*/),
+      (v4/*: any*/)
     ],
     "kind": "Fragment",
     "metadata": null,
     "name": "AppCreateTransactionMutation",
-    "selections": (v3/*: any*/),
+    "selections": (v5/*: any*/),
     "type": "Mutation",
     "abstractKey": null
   },
@@ -92,24 +135,26 @@ return {
   "operation": {
     "argumentDefinitions": [
       (v0/*: any*/),
+      (v4/*: any*/),
       (v2/*: any*/),
+      (v3/*: any*/),
       (v1/*: any*/)
     ],
     "kind": "Operation",
     "name": "AppCreateTransactionMutation",
-    "selections": (v3/*: any*/)
+    "selections": (v5/*: any*/)
   },
   "params": {
-    "cacheID": "17781812c1dedb626b3291cc2b2eee2a",
+    "cacheID": "f12979f0f0c7efafb89250cb34b604ea",
     "id": null,
     "metadata": {},
     "name": "AppCreateTransactionMutation",
     "operationKind": "mutation",
-    "text": "mutation AppCreateTransactionMutation(\n  $amount: Float!\n  $userId: ID!\n  $description: String!\n) {\n  createTransaction(amount: $amount, userId: $userId, description: $description) {\n    id\n    amount\n    description\n  }\n}\n"
+    "text": "mutation AppCreateTransactionMutation(\n  $amount: Float!\n  $userId: ID!\n  $description: String!\n  $type: String!\n  $category: String!\n) {\n  createTransaction(amount: $amount, userId: $userId, description: $description, type: $type, category: $category) {\n    id\n    amount\n    description\n    type\n    category\n    createdAt\n  }\n}\n"
   }
 };
 })();
 
-node.hash = "bf6422ca923388df6fe536374d94b7c1";
+node.hash = "5e02e91b0c50dbbf94ba87a03a2f321a";
 
 export default node;

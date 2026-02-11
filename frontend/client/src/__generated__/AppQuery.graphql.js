@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<78e617f05cb5011abe8ea844a3ce39ee>>
+ * @generated SignedSource<<9d4aa5008c08dd16bc8455ae51d366e1>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -17,6 +17,13 @@ var v0 = {
   "storageKey": null
 },
 v1 = [
+  {
+    "kind": "Literal",
+    "name": "userId",
+    "value": "1"
+  }
+],
+v2 = [
   {
     "alias": null,
     "args": [
@@ -51,13 +58,39 @@ v1 = [
   },
   {
     "alias": null,
-    "args": [
+    "args": (v1/*: any*/),
+    "concreteType": "Summary",
+    "kind": "LinkedField",
+    "name": "summary",
+    "plural": false,
+    "selections": [
       {
-        "kind": "Literal",
-        "name": "userId",
-        "value": "1"
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "totalIncome",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "totalExpense",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "balance",
+        "storageKey": null
       }
     ],
+    "storageKey": "summary(userId:\"1\")"
+  },
+  {
+    "alias": null,
+    "args": (v1/*: any*/),
     "concreteType": "Transaction",
     "kind": "LinkedField",
     "name": "transactions",
@@ -77,6 +110,27 @@ v1 = [
         "kind": "ScalarField",
         "name": "description",
         "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "type",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "category",
+        "storageKey": null
+      },
+      {
+        "alias": null,
+        "args": null,
+        "kind": "ScalarField",
+        "name": "createdAt",
+        "storageKey": null
       }
     ],
     "storageKey": "transactions(userId:\"1\")"
@@ -88,7 +142,7 @@ return {
     "kind": "Fragment",
     "metadata": null,
     "name": "AppQuery",
-    "selections": (v1/*: any*/),
+    "selections": (v2/*: any*/),
     "type": "Query",
     "abstractKey": null
   },
@@ -97,19 +151,19 @@ return {
     "argumentDefinitions": [],
     "kind": "Operation",
     "name": "AppQuery",
-    "selections": (v1/*: any*/)
+    "selections": (v2/*: any*/)
   },
   "params": {
-    "cacheID": "45d12fd0a4e5f242b441940b9431f6b4",
+    "cacheID": "5784b43c9f165c890e6c9aa0815a0139",
     "id": null,
     "metadata": {},
     "name": "AppQuery",
     "operationKind": "query",
-    "text": "query AppQuery {\n  user(id: \"1\") {\n    id\n    name\n    email\n  }\n  transactions(userId: \"1\") {\n    id\n    amount\n    description\n  }\n}\n"
+    "text": "query AppQuery {\n  user(id: \"1\") {\n    id\n    name\n    email\n  }\n  summary(userId: \"1\") {\n    totalIncome\n    totalExpense\n    balance\n  }\n  transactions(userId: \"1\") {\n    id\n    amount\n    description\n    type\n    category\n    createdAt\n  }\n}\n"
   }
 };
 })();
 
-node.hash = "79592a0567fcecc0a1c719a000ad278a";
+node.hash = "dc30f49ef62eee9508ed5232f21b2f79";
 
 export default node;

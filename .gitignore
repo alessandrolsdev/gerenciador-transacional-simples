@@ -1,12 +1,27 @@
-# Dependências do Node (Backend e Frontend)
+# Dependencies
 node_modules
+.pnp
+.pnp.js
 
-# Arquivos de Compilação do Relay/GraphQL
-data/schema.graphql      # O schema baixado do servidor
-frontend/client/build    # Pasta de build do React
-frontend/client/node_modules
+# Testing
+coverage
 
-# Logs e Cache
+# Production
+build
+
+# Misc
 .DS_Store
-npm-debug.log*
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local Environment Variables
+.env
+
+# Relay
+__generated__
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
