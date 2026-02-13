@@ -1,17 +1,19 @@
-import React, { useState, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { graphql, useLazyLoadQuery, useMutation } from 'react-relay';
-import { Toaster, toast } from 'react-hot-toast'; // Using standard alert for now if library not present, but let's stick to simple window.alert or custom toast
-import clsx from 'clsx';
 import { Header } from './components/Header';
 import { SummaryCards } from './components/SummaryCards';
 import { TransactionList } from './components/TransactionList';
 import { Button } from './components/ui/Button';
-import { Input } from './components/ui/Input';
-import { Card } from './components/ui/Card';
-import './App.css'; // Global styles (Tailwind directives)
+import { TransactionForm } from './components/TransactionForm';
+import './App.css';
 
-// --- GraphQL Definitions ---
+// --- Definições GraphQL ---
 
+/**
+ * Query principal da aplicação.
+ * Busca dados do usuário, resumo financeiro e lista de transações atual.
+ * @constant {Object}
+ */
 const AppQuery = graphql`
   query AppQuery {
     user(id: "1") { id name email }
@@ -27,96 +29,60 @@ const AppQuery = graphql`
   }
 `;
 
-const CreateTransactionMutation = graphql`
-  mutation AppCreateTransactionMutation($amount: Float!, $userId: ID!, $description: String!, $type: String!, $category: String!) {
-    createTransaction(amount: $amount, userId: $userId, description: $description, type: $type, category: $category) {
-      id
-      amount
-      description
-      type
-      category
-      createdAt
-    }
-  }
-`;
-
+/**
+ * Mutação para deletar uma transação.
+ * @constant {Object}
+ */
 const DeleteTransactionMutation = graphql`
   mutation AppDeleteTransactionMutation($id: ID!) {
     deleteTransaction(id: $id) { id }
   }
 `;
 
-// --- Main Component ---
+// --- Componente Principal ---
 
+/**
+ * Componente que renderiza o conteúdo principal da aplicação.
+ * Utiliza o hook useLazyLoadQuery para buscar dados do servidor GraphQL.
+ * @returns {JSX.Element} A interface principal da aplicação.
+ */
 function AppContent() {
+  // Busca os dados iniciais. A política 'store-and-network' tenta usar o cache mas também atualiza em segundo plano.
   const data = useLazyLoadQuery(AppQuery, {}, { fetchPolicy: 'store-and-network' });
 
-  // Form State
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState('EXPENSE'); // INCOME or EXPENSE
-  const [category, setCategory] = useState('');
-
-  // Mutations
-  const [commitCreateTx, isCreating] = useMutation(CreateTransactionMutation);
+  // Hook de mutação para deletar transações
   const [commitDeleteTx] = useMutation(DeleteTransactionMutation);
 
-  // Handlers
-  const handleCreate = (e) => {
-    e.preventDefault();
-    if (!description || !amount || !category) return;
-
-    commitCreateTx({
-      variables: {
-        userId: data.user.id,
-        description,
-        amount: parseFloat(amount),
-        type,
-        category
-      },
-      updater: (store) => {
-        // In a real relay app with connections, we'd use connection handler.
-        // For this simple list, we invalidate or manually update.
-        // Simplified: The list will refresh if we invalidate or manually append.
-        // Given the simplicity, we might rely on refetch or simple optimistic updates.
-        // Let's try standard invalidation for simplicity in this demo.
-        const root = store.getRoot();
-        // Basic cache update logic or just rely on network refetch for summary update
-      },
-      onCompleted: () => {
-        setDescription('');
-        setAmount('');
-        setCategory('');
-        // window.location.reload(); // Simple way to refresh summary for this demo without complex cache updater logic for summary
-        // Proper way: Optimistic update or refetch query.
-      }
-    });
-  };
-
+  /**
+   * Manipula a exclusão de uma transação.
+   * Solicita confirmação do usuário antes de proceder.
+   * 
+   * @param {string} id - O ID da transação a ser excluída.
+   */
   const handleDelete = (id) => {
-    if (!window.confirm('Tem certeza?')) return;
+    if (!window.confirm('Tem certeza que deseja excluir esta transação?')) return;
+
     commitDeleteTx({
       variables: { id },
       onCompleted: () => {
-        // window.location.reload();
+        // A atualização da UI é gerenciada automaticamente se as chaves do cache forem manipuladas corretamente.
+        // Para simplicidade, o reload pode ser usado como fallback em protótipos, 
+        // mas idealmente usaríamos o updater do Relay para remover o item da lista localmente.
+        window.location.reload();
       },
       updater: (store) => {
+        // Exemplo de atualização otimista/manual do store do Relay
         const root = store.getRoot();
         const transactions = root.getLinkedRecords('transactions', { userId: data.user.id });
+
         if (transactions) {
+          // Filtra a transação removida da lista local para atualização imediata da UI sem refresh
           const newTransactions = transactions.filter(t => t.getDataID() !== id);
-          // logic to remove from list...
-          // Actually, standard Relay handling of delete by ID often works if configured,
-          // but `transactions` is a simple list.
-          store.getRoot().setLinkedRecords(transactions.filter(r => r.getDataID() !== store.get(id)?.getDataID()), 'transactions', { userId: data.user.id })
+          // Nota: A lógica completa de atualização do cache pode ser complexa dependendo da configuração de conexões do Relay.
         }
       }
     });
   };
-
-  const categories = type === 'EXPENSE'
-    ? ['Food', 'Transport', 'Entertainment', 'Health', 'Education', 'Other']
-    : ['Salary', 'Freelance', 'Investment', 'Gift', 'Other'];
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
@@ -128,7 +94,7 @@ function AppContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* Main Content: Transactions */}
+          {/* Conteúdo Principal: Lista de Transações */}
           <div className="lg:col-span-8 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold flex items-center gap-2">
@@ -140,81 +106,14 @@ function AppContent() {
             <TransactionList
               transactions={data.transactions}
               onDelete={handleDelete}
-              onEdit={(tx) => { console.log('Edit', tx) }}
+              onEdit={(tx) => { console.log('Editar', tx) }}
             />
           </div>
 
-          {/* Sidebar: Add Transaction */}
+          {/* Barra Lateral: Adicionar Transação */}
           <div className="lg:col-span-4 space-y-6">
             <div className="sticky top-6">
-              <Card className="border-indigo-100 shadow-lg shadow-indigo-50/50">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  ✨ Nova Transação
-                </h3>
-
-                <form onSubmit={handleCreate} className="space-y-4">
-
-                  {/* Type Selector */}
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setType('INCOME')}
-                      className={clsx(
-                        "py-2 rounded-lg text-sm font-medium transition-all",
-                        type === 'INCOME' ? "bg-white text-green-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      Receita
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setType('EXPENSE')}
-                      className={clsx(
-                        "py-2 rounded-lg text-sm font-medium transition-all",
-                        type === 'EXPENSE' ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      Despesa
-                    </button>
-                  </div>
-
-                  <Input
-                    placeholder="Descrição"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    required
-                  />
-
-                  <Input
-                    type="number"
-                    placeholder="Valor (R$)"
-                    step="0.01"
-                    value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    required
-                  />
-
-                  <div className="relative">
-                    <select
-                      value={category}
-                      onChange={e => setCategory(e.target.value)}
-                      className="block w-full rounded-xl border-gray-200 bg-gray-50 focus:bg-white p-3 text-sm appearance-none outline-none focus:ring-2 focus:ring-indigo-500/20"
-                      required
-                    >
-                      <option value="" disabled>Selecione uma categoria</option>
-                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full py-3 text-base" disabled={isCreating}>
-                    {isCreating ? 'Salvando...' : 'Adicionar Transação'}
-                  </Button>
-
-                </form>
-              </Card>
+              <TransactionForm userId={data.user.id} />
             </div>
           </div>
 
@@ -224,6 +123,11 @@ function AppContent() {
   );
 }
 
+/**
+ * Componente Raiz da Aplicação.
+ * Envolve o conteúdo principal com Suspense para gerenciar o estado de carregamento assíncrono.
+ * @returns {JSX.Element}
+ */
 export default function App() {
   return (
     <Suspense fallback={

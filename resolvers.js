@@ -1,27 +1,24 @@
 /**
  * Resolver raiz para operações GraphQL.
- * Implementa a lógica para buscar e modificar dados.
+ * Implementa a lógica de negócios para consultas e modificações de dados.
  */
 const { mockUsers, mockTransactions } = require('./mockDb');
-
-/**
- * Expressão regular para validação de email.
- * @constant {RegExp}
- */
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const { isValidEmail, isRequired } = require('./utils/validators');
 
 const rootResolver = {
   /**
-   * Retrieves a single user by ID.
-   * @param {Object} args - Query arguments.
-   * @param {string} args.id - User ID.
+   * Recupera um usuário específico pelo ID.
+   * @param {Object} args - Argumentos da consulta.
+   * @param {string} args.id - O ID do usuário.
+   * @returns {Object|undefined} O objeto do usuário ou undefined se não encontrado.
    */
   user: (args) => mockUsers.find(user => user.id === args.id),
 
   /**
-   * Retrieves all transactions for a specific user, sorted by date (newest first).
-   * @param {Object} args - Query arguments.
-   * @param {string} args.userId - User ID.
+   * Recupera todas as transações de um usuário específico, ordenadas por data (mais recente primeiro).
+   * @param {Object} args - Argumentos da consulta.
+   * @param {string} args.userId - O ID do usuário.
+   * @returns {Array<Object>} Lista de transações do usuário.
    */
   transactions: (args) => {
     return mockTransactions
@@ -30,9 +27,11 @@ const rootResolver = {
   },
 
   /**
-   * Calculates financial summary for a user.
-   * @param {Object} args - Query arguments.
-   * @param {string} args.userId - User ID.
+   * Calcula o resumo financeiro para um usuário.
+   * Inclui total de receitas, despesas e o saldo final.
+   * @param {Object} args - Argumentos da consulta.
+   * @param {string} args.userId - O ID do usuário.
+   * @returns {Object} Objeto contendo totalIncome, totalExpense e balance.
    */
   summary: (args) => {
     const userTx = mockTransactions.filter(tx => tx.userId === args.userId);
@@ -53,16 +52,20 @@ const rootResolver = {
   },
 
   /**
-   * Creates a new user.
-   * @param {Object} args - Mutation arguments.
+   * Cria um novo usuário no sistema.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {string} args.name - Nome do usuário.
+   * @param {string} args.email - E-mail do usuário.
+   * @throws {Error} Se nome ou e-mail estiverem ausentes ou se o formato do e-mail for inválido.
+   * @returns {Object} O novo objeto de usuário criado.
    */
   createUser: (args) => {
-    if (!args.name || !args.email) {
-      throw new Error("Name and email are required.");
+    if (!isRequired(args.name) || !isRequired(args.email)) {
+      throw new Error("Nome e e-mail são obrigatórios.");
     }
 
-    if (!EMAIL_REGEX.test(args.email)) {
-      throw new Error("Invalid email format.");
+    if (!isValidEmail(args.email)) {
+      throw new Error("Formato de e-mail inválido.");
     }
 
     const maxId = mockUsers.length > 0
@@ -79,20 +82,33 @@ const rootResolver = {
   },
 
   /**
-   * Creates a new transaction with type, category, and automatic timestamp.
-   * @param {Object} args - Mutation arguments.
+   * Cria uma nova transação com tipo, categoria e carimbo de data/hora automático.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {number} args.amount - Valor da transação.
+   * @param {string} args.userId - ID do usuário associado.
+   * @param {string} args.description - Descrição da transação.
+   * @param {string} args.type - Tipo da transação ('INCOME' ou 'EXPENSE').
+   * @param {string} args.category - Categoria da transação.
+   * @throws {Error} Se campos obrigatórios estiverem faltando, valor for negativo ou tipo inválido.
+   * @returns {Object} A nova transação criada.
    */
   createTransaction: (args) => {
-    if (args.amount === undefined || !args.userId || !args.description || !args.type || !args.category) {
-      throw new Error("Missing required fields.");
+    if (
+      args.amount === undefined ||
+      !args.userId ||
+      !args.description ||
+      !args.type ||
+      !args.category
+    ) {
+      throw new Error("Campos obrigatórios ausentes.");
     }
 
     if (args.amount < 0) {
-      throw new Error("Amount cannot be negative.");
+      throw new Error("O valor não pode ser negativo.");
     }
 
     if (!['INCOME', 'EXPENSE'].includes(args.type)) {
-      throw new Error("Invalid transaction type. Must be INCOME or EXPENSE.");
+      throw new Error("Tipo de transação inválido. Deve ser 'INCOME' ou 'EXPENSE'.");
     }
 
     const maxId = mockTransactions.length > 0
@@ -114,14 +130,20 @@ const rootResolver = {
   },
 
   /**
-   * Updates an existing user.
+   * Atualiza as informações de um usuário existente.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {string} args.id - ID do usuário a ser atualizado.
+   * @param {string} [args.name] - Novo nome (opcional).
+   * @param {string} [args.email] - Novo e-mail (opcional).
+   * @throws {Error} Se o usuário não for encontrado ou e-mail for inválido.
+   * @returns {Object} O objeto do usuário atualizado.
    */
   updateUser: (args) => {
     const user = mockUsers.find(u => u.id === args.id);
-    if (!user) throw new Error("User not found.");
+    if (!user) throw new Error("Usuário não encontrado.");
 
-    if (args.email && !EMAIL_REGEX.test(args.email)) {
-      throw new Error("Invalid email format.");
+    if (args.email && !isValidEmail(args.email)) {
+      throw new Error("Formato de e-mail inválido.");
     }
 
     if (args.name) user.name = args.name;
@@ -130,14 +152,22 @@ const rootResolver = {
   },
 
   /**
-   * Updates a transaction.
+   * Atualiza uma transação existente.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {string} args.id - ID da transação.
+   * @param {number} [args.amount] - Novo valor.
+   * @param {string} [args.description] - Nova descrição.
+   * @param {string} [args.type] - Novo tipo.
+   * @param {string} [args.category] - Nova categoria.
+   * @throws {Error} Se a transação não for encontrada ou o valor for negativo.
+   * @returns {Object} A transação atualizada.
    */
   updateTransaction: (args) => {
     const tx = mockTransactions.find(t => t.id === args.id);
-    if (!tx) throw new Error("Transaction not found.");
+    if (!tx) throw new Error("Transação não encontrada.");
 
     if (args.amount !== undefined && args.amount !== null) {
-      if (args.amount < 0) throw new Error("Amount cannot be negative.");
+      if (args.amount < 0) throw new Error("O valor não pode ser negativo.");
       tx.amount = args.amount;
     }
 
@@ -149,21 +179,29 @@ const rootResolver = {
   },
 
   /**
-   * Deletes a user.
+   * Remove um usuário do sistema.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {string} args.id - ID do usuário a ser removido.
+   * @throws {Error} Se o usuário não for encontrado.
+   * @returns {Object} O objeto do usuário removido.
    */
   deleteUser: (args) => {
     const index = mockUsers.findIndex(u => u.id === args.id);
-    if (index === -1) throw new Error("User not found.");
+    if (index === -1) throw new Error("Usuário não encontrado.");
     const [deletedUser] = mockUsers.splice(index, 1);
     return deletedUser;
   },
 
   /**
-   * Deletes a transaction.
+   * Remove uma transação do sistema.
+   * @param {Object} args - Argumentos da mutação.
+   * @param {string} args.id - ID da transação a ser removida.
+   * @throws {Error} Se a transação não for encontrada.
+   * @returns {Object} O objeto da transação removida.
    */
   deleteTransaction: (args) => {
     const index = mockTransactions.findIndex(t => t.id === args.id);
-    if (index === -1) throw new Error("Transaction not found.");
+    if (index === -1) throw new Error("Transação não encontrada.");
     const [deletedTx] = mockTransactions.splice(index, 1);
     return deletedTx;
   },

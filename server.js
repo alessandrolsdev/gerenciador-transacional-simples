@@ -7,18 +7,21 @@ const { schemaString } = require('./schema');
 const { rootResolver } = require('./resolvers');
 
 /**
- * Compila a string do schema GraphQL em um objeto Schema.
+ * Compila a string dde definição do schema GraphQL em um objeto executável.
+ * @type {GraphQLSchema}
  */
 const schema = buildSchema(schemaString);
 
 /**
  * Inicializa a aplicação Express.
+ * @type {Express}
  */
 const app = express();
 
 /**
- * Configuração de CORS com origem controlada.
- * Em produção, configure a variável de ambiente FRONTEND_URL.
+ * Configuração de CORS (Cross-Origin Resource Sharing).
+ * Permite requisições da origem definida na variável de ambiente FRONTEND_URL
+ * ou 'http://localhost:3000' por padrão para desenvolvimento.
  */
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -26,8 +29,8 @@ app.use(cors({
 }));
 
 /**
- * Configura o endpoint GraphQL.
- * Define o schema, o resolver raiz e habilita o GraphiQL para testes.
+ * Configura o endpoint GraphQL na rota '/graphql'.
+ * Define o schema, o resolver raiz e habilita a interface GraphiQL para facilitar testes.
  */
 app.use('/graphql', graphqlHTTP({
   schema: schema,
@@ -36,12 +39,13 @@ app.use('/graphql', graphqlHTTP({
 }));
 
 /**
- * Inicia o servidor na porta 4000 apenas se não estiver rodando no Vercel.
- * No Vercel, exportamos o app para ser tratado como Serverless Function.
+ * Inicializa o servidor HTTP.
+ * Se o ambiente não for de produção, escuta na porta 4000.
+ * Em ambientes serverless (como Vercel), o app é exportado para ser tratado pela plataforma.
  */
 if (process.env.NODE_ENV !== 'production') {
   app.listen(4000, () => {
-    console.log('Backend Server (API) running at http://localhost:4000/graphql');
+    console.log('Servidor Backend (API) rodando em http://localhost:4000/graphql');
   });
 }
 
